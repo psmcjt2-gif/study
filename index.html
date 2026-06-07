@@ -1,0 +1,349 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@300;400&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  #app{min-height:620px;background:#0a1520;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif;color:#e8ddd0;position:relative;overflow:hidden;padding:2rem 1rem}
+  #wave-canvas{position:absolute;bottom:0;left:0;width:100%;height:220px;opacity:0.18;transition:opacity 1.2s}
+  #wave-canvas.active{opacity:0.5}
+  .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .timer-wrap{position:relative;width:210px;height:210px;margin-bottom:1.8rem;z-index:2}
+  #ring-svg{width:210px;height:210px;transform:rotate(-90deg)}
+  #ring-bg{fill:none;stroke:#152236;stroke-width:7}
+  #ring-prog{fill:none;stroke:#4ab8e8;stroke-width:7;stroke-linecap:round;stroke-dasharray:597;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
+  .timer-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+  #time-display{font-family:'Nanum Myeongjo',serif;font-size:3rem;color:#c9e0f5;letter-spacing:2px;line-height:1}
+  #phase-label{font-size:0.68rem;color:#5a8cad;letter-spacing:3px;text-transform:uppercase;margin-top:7px}
+  .subtitle-box{min-height:88px;max-width:400px;text-align:center;margin-bottom:2rem;padding:0 1rem;position:relative;z-index:2}
+  #subtitle{font-family:'Nanum Myeongjo',serif;font-size:1.08rem;line-height:2;color:#d0c4b2;opacity:0;transition:opacity 0.9s ease;white-space:pre-line}
+  #subtitle.visible{opacity:1}
+  .controls{display:flex;gap:1rem;align-items:center;position:relative;z-index:2}
+  .btn{border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:transform 0.15s,opacity 0.2s}
+  .btn:active{transform:scale(0.94)}
+  #play-btn{width:68px;height:68px;border-radius:50%;background:#1a5f8a;color:#c9e0f5;font-size:1.5rem;display:flex;align-items:center;justify-content:center}
+  #play-btn:hover{background:#2175a8}
+  #reset-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.04);color:#5a8cad;font-size:1rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(90,140,173,0.2)}
+  #reset-btn:hover{background:rgba(255,255,255,0.08)}
+  #vol-row{display:flex;align-items:center;gap:10px;margin-top:1.4rem;position:relative;z-index:2}
+  #vol-row label{font-size:0.72rem;color:#4a6a88;letter-spacing:1px}
+  #vol-slider{width:90px;accent-color:#4ab8e8}
+  .progress-dots{display:flex;gap:6px;margin-top:1.6rem;position:relative;z-index:2}
+  .dot{width:6px;height:6px;border-radius:50%;background:#152236;transition:background 0.4s,transform 0.4s}
+  .dot.done{background:#3a8cb4}
+  .dot.active{background:#7ec8f0;transform:scale(1.6)}
+  #status-msg{font-size:0.74rem;color:#3a5a78;margin-top:1.2rem;letter-spacing:1px;position:relative;z-index:2;text-align:center}
+  #audio-note{font-size:0.68rem;color:#2a4a62;margin-top:0.5rem;position:relative;z-index:2;text-align:center;max-width:340px}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">5분 관찰 명상 타이머 — 재생 버튼을 눌러 명상을 시작하세요</h2>
+
+<div id="app">
+  <canvas id="wave-canvas"></canvas>
+  <svg class="stars" viewBox="0 0 680 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+
+  <div class="timer-wrap">
+    <svg id="ring-svg" viewBox="0 0 210 210">
+      <circle id="ring-bg" cx="105" cy="105" r="95"/>
+      <circle id="ring-prog" cx="105" cy="105" r="95"/>
+    </svg>
+    <div class="timer-center">
+      <div id="time-display">5:00</div>
+      <div id="phase-label">관찰 명상</div>
+    </div>
+  </div>
+
+  <div class="subtitle-box">
+    <div id="subtitle"></div>
+  </div>
+
+  <div class="controls">
+    <button id="reset-btn" class="btn" aria-label="처음으로"><i class="ti ti-refresh"></i></button>
+    <button id="play-btn" class="btn" aria-label="재생">
+      <i class="ti ti-player-play" id="play-icon"></i>
+    </button>
+  </div>
+
+  <div id="vol-row">
+    <label for="vol-slider">볼륨</label>
+    <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.4"/>
+    <i class="ti ti-volume" style="font-size:15px;color:#4a6a88" aria-hidden="true"></i>
+  </div>
+
+  <div class="progress-dots" id="dots"></div>
+  <div id="status-msg">재생 버튼을 눌러 명상을 시작하세요</div>
+  <div id="audio-note">♪ 앰비언트 신디사이저 사운드 재생 중 (Web Audio API)<br>실제 mp3 파일 경로는 코드 상단 audioSrc 변수를 수정하세요</div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   오디오 파일 경로 설정
+   나중에 실제 파일로 교체 시 아래 경로만 수정하세요.
+   const voiceSrc = "audio/meditation.mp3";  // 명상 안내 목소리
+   const bgmSrc   = "audio/bgm.mp3";         // 배경 물소리/음악
+   현재는 Web Audio API 합성음으로 대체 작동합니다.
+───────────────────────────────────────────── */
+const voiceSrc = "";
+const bgmSrc   = "";
+
+const TOTAL = 300;
+const CIRCUMFERENCE = 2 * Math.PI * 95;
+
+const SCRIPT = [
+  {t:0,   text:"편안한 곳에 앉아볼까요?\n등을 꼿꼿하게 펴고,\n손은 무릎 위에 살포시 올려놓으세요."},
+  {t:10,  text:"이제 숨을 느껴보세요.\n코로 공기가 들어오는 느낌…\n그리고 코로 다시 나가는 느낌…"},
+  {t:28,  text:"들숨~ 날숨~\n천천히, 편안하게 숨을 쉬어봐요."},
+  {t:40,  text:"생각이 막 떠오르기 시작하네요?\n괜찮아요.\n'아, 생각이 올라왔구나' 하고\n그냥 지켜보기만 해요."},
+  {t:58,  text:"잡으려고 하지 말고,\n밀어내지도 말고…\n구름이 하늘을 지나가는 것처럼\n그냥 흘려보내는 거예요."},
+  {t:78,  text:"또 다른 생각이 올라오면\n'생각이구나~' 하고 이름만 붙여주고,\n다시 숨으로 돌아와요."},
+  {t:100, text:"이번엔 몸에서 느껴지는 감각을 살펴볼까요?\n어깨가 조금 무거운가요?\n가슴이 답답한가요?"},
+  {t:118, text:"그 느낌을 그냥\n'아, 지금 몸이 이렇게 느끼는구나'\n하고 따뜻하게 지켜봐요."},
+  {t:138, text:"감정이 올라올 수도 있어요.\n슬프거나, 불안하거나, 짜증이 날 수도 있지요.\n그럴 때도 마음으로 안아주듯 바라봐요."},
+  {t:162, text:"싫다고 밀어내지 않아도 돼요.\n그냥 지나갈 거예요."},
+  {t:178, text:"나는 생각이 아니에요.\n나는 감정이 아니에요.\n나는 그 모든 것을 조용히 지켜보고 있는\n따뜻하고 고요한 나예요."},
+  {t:200, text:"이제 다시 숨에 집중해볼게요.\n들숨으로 평온한 공기를 가득 받아들이고,\n날숨으로 불필요한 것들을 부드럽게 내보내요."},
+  {t:230, text:"들숨~ 날숨~\n천천히, 고요하게…"},
+  {t:255, text:"천천히 눈을 떠볼까요?\n지금 이 순간 내가 안전하고\n괜찮다는 걸 느껴봐요."},
+  {t:280, text:"수고했어요.\n마음이 조금 더 가벼워졌을 거예요.\n사랑해요. 고마워요."},
+];
+
+const PHASES = ["숨 고르기","관찰하기","내려놓기","느껴보기","고요하기"];
+
+let elapsed = 0, running = false, ticker = null, lastSub = -1;
+let audioCtx = null, masterGain = null, padNodes = [], volVal = 0.4;
+
+/* ── Web Audio 앰비언트 패드 합성 ── */
+function getCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    masterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+function buildPad() {
+  const ctx = getCtx();
+  const freqs = [110, 165, 220, 277.18, 330];
+  const now = ctx.currentTime;
+  padNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  padNodes = [];
+  freqs.forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+
+    osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(f, now);
+
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.08 + i * 0.03, now);
+    lfoGain.gain.setValueAtTime(f * 0.003, now);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.12 / freqs.length, now + 3.5);
+
+    osc.connect(gain);
+    gain.connect(masterGain);
+    lfo.start(now);
+    osc.start(now);
+    padNodes.push(osc, lfo);
+  });
+
+  const rev = addReverb(ctx);
+  if (rev) masterGain.connect(rev);
+}
+
+function addReverb(ctx) {
+  try {
+    const len = ctx.sampleRate * 2.4;
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+    const conv = ctx.createConvolver();
+    conv.buffer = buf;
+    const rvg = ctx.createGain();
+    rvg.gain.setValueAtTime(0.35, ctx.currentTime);
+    conv.connect(rvg);
+    rvg.connect(ctx.destination);
+    masterGain.connect(conv);
+    return null;
+  } catch(e) { return null; }
+}
+
+function startSound() {
+  const ctx = getCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  buildPad();
+  masterGain.gain.cancelScheduledValues(ctx.currentTime);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
+  masterGain.gain.linearRampToValueAtTime(volVal, ctx.currentTime + 2);
+}
+
+function stopSound(immediate) {
+  if (!audioCtx || !masterGain) return;
+  const now = audioCtx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+  const fade = immediate ? 0.1 : 2.5;
+  masterGain.gain.linearRampToValueAtTime(0, now + fade);
+  setTimeout(() => { padNodes.forEach(n => { try { n.stop(); } catch(e){} }); padNodes = []; }, (fade + 0.2) * 1000);
+}
+
+/* ── 볼륨 슬라이더 ── */
+document.getElementById('vol-slider').addEventListener('input', function() {
+  volVal = parseFloat(this.value);
+  if (masterGain && running) masterGain.gain.setValueAtTime(volVal, audioCtx.currentTime);
+});
+
+/* ── Wave canvas ── */
+const waveCanvas = document.getElementById('wave-canvas');
+const wCtx = waveCanvas.getContext('2d');
+let animId;
+
+function resizeWave() { waveCanvas.width = waveCanvas.offsetWidth; waveCanvas.height = waveCanvas.offsetHeight; }
+
+function drawWaves() {
+  if (!running) return;
+  resizeWave();
+  const W = waveCanvas.width, H = waveCanvas.height;
+  wCtx.clearRect(0, 0, W, H);
+  const t = Date.now() / 1000;
+  [
+    {amp:26,freq:0.016,spd:0.55,col:'rgba(74,184,232,0.38)',y:H*0.52},
+    {amp:16,freq:0.024,spd:0.85,col:'rgba(30,111,168,0.46)',y:H*0.64},
+    {amp:11,freq:0.033,spd:0.38,col:'rgba(126,200,240,0.28)',y:H*0.44},
+  ].forEach(w => {
+    wCtx.beginPath();
+    wCtx.moveTo(0, w.y);
+    for (let x = 0; x <= W; x += 4) wCtx.lineTo(x, w.y + Math.sin(x * w.freq + t * w.spd) * w.amp);
+    wCtx.lineTo(W, H); wCtx.lineTo(0, H); wCtx.closePath();
+    wCtx.fillStyle = w.col;
+    wCtx.fill();
+  });
+  animId = requestAnimationFrame(drawWaves);
+}
+
+/* ── Stars ── */
+(function() {
+  const svg = document.querySelector('.stars');
+  const ns = 'http://www.w3.org/2000/svg';
+  for (let i = 0; i < 65; i++) {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', Math.random() * 680);
+    c.setAttribute('cy', Math.random() * 300);
+    c.setAttribute('r', Math.random() * 1.4 + 0.3);
+    c.setAttribute('fill', '#c9e0f5');
+    c.setAttribute('opacity', (Math.random() * 0.45 + 0.08).toFixed(2));
+    svg.appendChild(c);
+  }
+})();
+
+/* ── Dots ── */
+function buildDots() {
+  const el = document.getElementById('dots');
+  el.innerHTML = '';
+  SCRIPT.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot'; d.id = 'dot-' + i;
+    el.appendChild(d);
+  });
+}
+
+function updateDots(idx) {
+  SCRIPT.forEach((_, i) => {
+    const d = document.getElementById('dot-' + i);
+    if (!d) return;
+    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  });
+}
+
+/* ── Timer ── */
+function formatTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+function updateRing() {
+  document.getElementById('ring-prog').style.strokeDashoffset = CIRCUMFERENCE * (elapsed / TOTAL);
+}
+
+function getCurrentScriptIdx(e) {
+  let idx = 0;
+  for (let i = 0; i < SCRIPT.length; i++) { if (e >= SCRIPT[i].t) idx = i; }
+  return idx;
+}
+
+function showSubtitle(idx) {
+  if (idx === lastSub) return;
+  const el = document.getElementById('subtitle');
+  el.classList.remove('visible');
+  setTimeout(() => { el.textContent = SCRIPT[idx].text; el.classList.add('visible'); }, 550);
+  lastSub = idx;
+  updateDots(idx);
+  document.getElementById('phase-label').textContent = PHASES[Math.min(Math.floor(idx / 3), PHASES.length - 1)];
+}
+
+function tick() {
+  if (elapsed >= TOTAL) {
+    clearInterval(ticker); running = false;
+    document.getElementById('play-icon').className = 'ti ti-player-play';
+    waveCanvas.classList.remove('active');
+    cancelAnimationFrame(animId);
+    stopSound(false);
+    document.getElementById('time-display').textContent = '0:00';
+    document.getElementById('status-msg').textContent = '명상을 마쳤어요. 그 고요함에 잠시 머물러봐요.';
+    return;
+  }
+  elapsed++;
+  document.getElementById('time-display').textContent = formatTime(TOTAL - elapsed);
+  updateRing();
+  showSubtitle(getCurrentScriptIdx(elapsed));
+}
+
+/* ── Controls ── */
+function toggle() {
+  if (elapsed >= TOTAL) return;
+  running = !running;
+  const icon = document.getElementById('play-icon');
+  const msg = document.getElementById('status-msg');
+  if (running) {
+    msg.textContent = '명상 중...';
+    icon.className = 'ti ti-player-pause';
+    waveCanvas.classList.add('active');
+    startSound();
+    ticker = setInterval(tick, 1000);
+    drawWaves();
+    if (elapsed === 0) { showSubtitle(0); lastSub = 0; }
+  } else {
+    msg.textContent = '일시 정지됨';
+    icon.className = 'ti ti-player-play';
+    waveCanvas.classList.remove('active');
+    stopSound(true);
+    clearInterval(ticker);
+    cancelAnimationFrame(animId);
+  }
+}
+
+function reset() {
+  clearInterval(ticker); cancelAnimationFrame(animId);
+  running = false; elapsed = 0; lastSub = -1;
+  stopSound(true);
+  document.getElementById('play-icon').className = 'ti ti-player-play';
+  waveCanvas.classList.remove('active');
+  document.getElementById('time-display').textContent = '5:00';
+  document.getElementById('phase-label').textContent = '관찰 명상';
+  const sub = document.getElementById('subtitle');
+  sub.classList.remove('visible'); sub.textContent = '';
+  document.getElementById('ring-prog').style.strokeDashoffset = 0;
+  document.getElementById('status-msg').textContent = '재생 버튼을 눌러 명상을 시작하세요';
+  updateDots(-1);
+  wCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+}
+
+document.getElementById('play-btn').addEventListener('click', toggle);
+document.getElementById('reset-btn').addEventListener('click', reset);
+buildDots();
+resizeWave();
+</script>
