@@ -1,349 +1,1098 @@
-
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>보건소 수진 씨의 존재감 회복 5단계 여정</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@300;400&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
-  #app{min-height:620px;background:#0a1520;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif;color:#e8ddd0;position:relative;overflow:hidden;padding:2rem 1rem}
-  #wave-canvas{position:absolute;bottom:0;left:0;width:100%;height:220px;opacity:0.18;transition:opacity 1.2s}
-  #wave-canvas.active{opacity:0.5}
-  .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-  .timer-wrap{position:relative;width:210px;height:210px;margin-bottom:1.8rem;z-index:2}
-  #ring-svg{width:210px;height:210px;transform:rotate(-90deg)}
-  #ring-bg{fill:none;stroke:#152236;stroke-width:7}
-  #ring-prog{fill:none;stroke:#4ab8e8;stroke-width:7;stroke-linecap:round;stroke-dasharray:597;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
-  .timer-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
-  #time-display{font-family:'Nanum Myeongjo',serif;font-size:3rem;color:#c9e0f5;letter-spacing:2px;line-height:1}
-  #phase-label{font-size:0.68rem;color:#5a8cad;letter-spacing:3px;text-transform:uppercase;margin-top:7px}
-  .subtitle-box{min-height:88px;max-width:400px;text-align:center;margin-bottom:2rem;padding:0 1rem;position:relative;z-index:2}
-  #subtitle{font-family:'Nanum Myeongjo',serif;font-size:1.08rem;line-height:2;color:#d0c4b2;opacity:0;transition:opacity 0.9s ease;white-space:pre-line}
-  #subtitle.visible{opacity:1}
-  .controls{display:flex;gap:1rem;align-items:center;position:relative;z-index:2}
-  .btn{border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:transform 0.15s,opacity 0.2s}
-  .btn:active{transform:scale(0.94)}
-  #play-btn{width:68px;height:68px;border-radius:50%;background:#1a5f8a;color:#c9e0f5;font-size:1.5rem;display:flex;align-items:center;justify-content:center}
-  #play-btn:hover{background:#2175a8}
-  #reset-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.04);color:#5a8cad;font-size:1rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(90,140,173,0.2)}
-  #reset-btn:hover{background:rgba(255,255,255,0.08)}
-  #vol-row{display:flex;align-items:center;gap:10px;margin-top:1.4rem;position:relative;z-index:2}
-  #vol-row label{font-size:0.72rem;color:#4a6a88;letter-spacing:1px}
-  #vol-slider{width:90px;accent-color:#4ab8e8}
-  .progress-dots{display:flex;gap:6px;margin-top:1.6rem;position:relative;z-index:2}
-  .dot{width:6px;height:6px;border-radius:50%;background:#152236;transition:background 0.4s,transform 0.4s}
-  .dot.done{background:#3a8cb4}
-  .dot.active{background:#7ec8f0;transform:scale(1.6)}
-  #status-msg{font-size:0.74rem;color:#3a5a78;margin-top:1.2rem;letter-spacing:1px;position:relative;z-index:2;text-align:center}
-  #audio-note{font-size:0.68rem;color:#2a4a62;margin-top:0.5rem;position:relative;z-index:2;text-align:center;max-width:340px}
+/* ── 리셋 & 기본 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  background: #F7F7F8;
+  color: #1A1A1A;
+  font-size: 14px;
+}
+
+/* ── 앱 레이아웃 ── */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ── 위쪽 패널 (구 왼쪽) ── */
+.left {
+  height: 40%;
+  min-height: 180px;
+  background: #fff;
+  border-bottom: 1px solid #E5E5E5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.left-inner {
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+.left-col-main { flex: 1; min-width: 0; }
+.left-col-side { width: 220px; flex-shrink: 0; border-left: 1px solid #EBEBEB; padding-left: 14px; }
+
+.app-title { font-size: 13px; font-weight: 700; color: #1A1A1A; margin-bottom: 3px; }
+.app-sub   { font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.6; }
+
+.sec-label {
+  font-size: 10px; font-weight: 700; color: #999;
+  letter-spacing: .07em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.prog-txt  { font-size: 11px; color: #666; margin-bottom: 4px; }
+.prog-bg   { background: #F0F0F0; border-radius: 99px; height: 4px; margin-bottom: 14px; }
+.prog-fill { height: 4px; border-radius: 99px; background: #7C6ED8; transition: width .35s ease; }
+
+/* 체크카드 */
+.chk-card {
+  background: #FAFAFA;
+  border: 1px solid #EBEBEB;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.chk-card:hover { background: #F2F0FD; }
+.chk-row { display: flex; align-items: flex-start; gap: 8px; }
+
+.chk-circle {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #CCC;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  margin-top: 3px;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.chk-circle.on { background: #EDE9FC; border-color: #7C6ED8; color: #3C3489; }
+
+.chk-num {
+  font-size: 9px; font-weight: 700;
+  color: #7C6ED8; background: #EEEDFE;
+  border-radius: 4px; padding: 1px 5px;
+  margin-bottom: 2px; display: inline-block;
+}
+/* ★ 완료 시 취소선 제거 — 색상만 변경 */
+.chk-label      { font-size: 11.5px; color: #1A1A1A; line-height: 1.4; }
+.chk-label.done { color: #7C6ED8; text-decoration: none; font-weight: 600; }
+.chk-sub        { font-size: 10px; color: #AAA; margin-top: 1px; }
+
+/* 상세 펼침 */
+.detail-box {
+  margin-top: 7px; padding: 7px 9px;
+  background: #F4F2FD; border-radius: 6px;
+  border: 1px solid #E0DAFB;
+  display: none;
+}
+.detail-box.open { display: block; }
+.detail-box .tip-title {
+  font-size: 9.5px; font-weight: 700;
+  color: #7C6ED8; margin-bottom: 4px; letter-spacing: .03em;
+}
+.detail-box p { font-size: 10.5px; color: #4A3FA0; line-height: 1.7; margin-bottom: 4px; }
+.detail-box p:last-child { margin-bottom: 0; }
+
+/* 날짜 섹션 */
+.date-section { margin-top: 0; }
+.date-item {
+  font-size: 11px; padding: 4px 8px;
+  border-radius: 6px; cursor: pointer;
+  color: #666; display: flex;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 2px;
+}
+.date-item:hover  { background: #F0F0F0; }
+.date-item.active { background: #EEEDFE; color: #3C3489; font-weight: 600; }
+.dot-saved        { width: 6px; height: 6px; border-radius: 50%; background: #7C6ED8; flex-shrink: 0; }
+.empty-msg        { font-size: 11px; color: #BBB; text-align: center; padding: 12px 0; }
+
+/* ── 아래쪽 패널 (구 오른쪽) ── */
+.right { height: 60%; display: flex; flex-direction: column; overflow: hidden; background: #F7F7F8; min-height: 0; }
+
+.rp-header {
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #E5E5E5;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+}
+.date-nav { display: flex; align-items: center; gap: 6px; }
+.nav-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid #DDD; background: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: #555; font-size: 17px; line-height: 1;
+}
+.nav-btn:hover { background: #F5F5F5; }
+.date-label { font-size: 13px; font-weight: 600; color: #1A1A1A; min-width: 155px; text-align: center; }
+.today-btn {
+  font-size: 11px; padding: 4px 9px;
+  border-radius: 6px; border: 1px solid #DDD;
+  background: #fff; cursor: pointer; color: #555;
+}
+.today-btn:hover { background: #F5F5F5; }
+
+.hdr-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.hbtn {
+  font-size: 11px; padding: 5px 11px;
+  border-radius: 7px; border: 1px solid #DDD;
+  background: #fff; cursor: pointer; color: #555;
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.hbtn:hover { background: #F5F5F5; }
+.hbtn.save-all { border-color: #AFA9EC; color: #3C3489; }
+.hbtn.save-all:hover { background: #EEEDFE; }
+.hbtn.export { border-color: #7ECFB3; color: #085041; }
+.hbtn.export:hover { background: #E1F5EE; }
+.hbtn.import { border-color: #F5C07A; color: #633806; }
+.hbtn.import:hover { background: #FFF0D9; }
+
+.global-toast {
+  font-size: 11px; padding: 3px 10px;
+  border-radius: 99px; font-weight: 500;
+  display: none;
+}
+.global-toast.green { color: #27500A; background: #EAF3DE; }
+.global-toast.red   { color: #7A0000; background: #FDE8E8; }
+
+/* 오른쪽 바디 */
+.rp-body {
+  padding: 14px 16px;
+  overflow-y: auto; flex: 1;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* 안내 박스 */
+.notice {
+  font-size: 11px; color: #888;
+  background: #F5F5F5; border-radius: 7px;
+  padding: 7px 11px; line-height: 1.65;
+  border: 1px solid #EBEBEB;
+  flex-shrink: 0;
+}
+.notice b { font-weight: 600; color: #555; }
+
+/* 항목 블록 */
+.entry-block {
+  background: #fff;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.entry-hdr {
+  padding: 10px 14px;
+  background: #FAFAFA;
+  border-bottom: 1px solid #F0F0F0;
+}
+.entry-num {
+  font-size: 10px; font-weight: 700;
+  color: #7C6ED8; background: #EEEDFE;
+  border-radius: 4px; padding: 1px 6px;
+  display: inline-block; margin-bottom: 4px;
+}
+.entry-title    { font-size: 13px; font-weight: 700; color: #1A1A1A; line-height: 1.3; }
+.entry-title-en { font-size: 10px; color: #AAA; margin-top: 2px; }
+
+.virtue-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.vtag {
+  font-size: 9.5px; padding: 2px 7px;
+  border-radius: 99px;
+  background: #EDE9FC; color: #5C50B5;
+  font-weight: 600;
+}
+
+.entry-body { padding: 10px 14px; }
+.entry-desc {
+  font-size: 11px; color: #777; line-height: 1.7;
+  margin-bottom: 10px; padding: 7px 10px;
+  background: #FAFAFA; border-radius: 6px;
+  border: 1px solid #F0F0F0;
+}
+
+/* ★ 소항목 2분할 — 반응형 처리 */
+.sub-tas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sub-ta-wrap {}
+.sub-ta-title {
+  font-size: 10.5px; font-weight: 700;
+  color: #5C50B5; margin-bottom: 3px;
+}
+.sub-ta-desc {
+  font-size: 10px; color: #999;
+  line-height: 1.6; margin-bottom: 5px;
+}
+
+.entry-ta {
+  width: 100%;
+  border: 1px solid #E5E5E5;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #1A1A1A;
+  background: #fff;
+  resize: none;
+  outline: none;
+  min-height: 72px;
+  line-height: 1.7;
+  display: block;
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.entry-ta:focus { border-color: #AFA9EC; background: #FDFCFF; }
+.entry-ta.listening { border-color: #E05C5C; background: #FFF8F8; animation: pulse-border 1s ease-in-out infinite; }
+
+@keyframes pulse-border {
+  0%, 100% { border-color: #E05C5C; box-shadow: 0 0 0 0 rgba(224,92,92,0); }
+  50%       { border-color: #C03030; box-shadow: 0 0 0 3px rgba(224,92,92,0.18); }
+}
+
+/* STT 래퍼 */
+.ta-wrapper { position: relative; }
+.mic-btn {
+  position: absolute;
+  bottom: 7px; right: 7px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid #D0CDF0;
+  background: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+  color: #7C6ED8;
+  transition: all .15s;
+  z-index: 2;
+  user-select: none;
+}
+.mic-btn:hover { background: #EEEDFE; border-color: #AFA9EC; }
+.mic-btn.active {
+  background: #E05C5C; border-color: #C03030; color: #fff;
+  animation: pulse-mic .8s ease-in-out infinite;
+}
+@keyframes pulse-mic {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+.mic-btn.no-support { opacity: .35; cursor: not-allowed; }
+
+/* textarea에 우측 패딩 추가 (마이크 버튼 공간 확보) */
+.entry-ta { padding-right: 36px; }
+
+.save-row {
+  display: flex; justify-content: flex-end;
+  align-items: center; gap: 8px; margin-top: 8px;
+}
+.save-item-btn {
+  font-size: 11px; padding: 5px 13px;
+  border-radius: 6px; border: 1px solid #AFA9EC;
+  background: #fff; cursor: pointer; color: #3C3489;
+  transition: background .12s;
+}
+.save-item-btn:hover  { background: #EEEDFE; }
+.save-item-btn:active { background: #DDD8F8; }
+
+.item-toast {
+  font-size: 10px; padding: 2px 8px;
+  border-radius: 99px; color: #27500A;
+  background: #EAF3DE; font-weight: 500;
+  display: none;
+}
 </style>
+</head>
+<body>
+<input type="file" id="file-input" accept=".json" style="display:none">
 
-<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">5분 관찰 명상 타이머 — 재생 버튼을 눌러 명상을 시작하세요</h2>
+<div class="app">
 
-<div id="app">
-  <canvas id="wave-canvas"></canvas>
-  <svg class="stars" viewBox="0 0 680 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
-
-  <div class="timer-wrap">
-    <svg id="ring-svg" viewBox="0 0 210 210">
-      <circle id="ring-bg" cx="105" cy="105" r="95"/>
-      <circle id="ring-prog" cx="105" cy="105" r="95"/>
-    </svg>
-    <div class="timer-center">
-      <div id="time-display">5:00</div>
-      <div id="phase-label">관찰 명상</div>
+  <!-- 왼쪽 패널 -->
+  <div class="left">
+    <div class="left-inner">
+      <!-- 왼쪽 컬럼: 타이틀 + 체크리스트 -->
+      <div class="left-col-main">
+        <p class="app-title">존재감 회복 5단계 여정</p>
+        <p class="app-sub">보건소 수진 씨처럼 몸으로 익히는 자기 사랑 실습 기록장</p>
+        <p class="sec-label">오늘의 여정 체크</p>
+        <p class="prog-txt" id="ptxt">0 / 5 완료</p>
+        <div class="prog-bg"><div class="prog-fill" id="pbar" style="width:0%"></div></div>
+        <div id="chk-items"></div>
+      </div>
+      <!-- 오른쪽 컬럼: 날짜 목록 -->
+      <div class="left-col-side">
+        <p class="sec-label">기록한 날짜</p>
+        <div id="date-list"></div>
+      </div>
     </div>
   </div>
 
-  <div class="subtitle-box">
-    <div id="subtitle"></div>
+  <!-- 오른쪽 패널 -->
+  <div class="right">
+    <div class="rp-header">
+      <div class="date-nav">
+        <button class="nav-btn" id="btn-prev">&#8249;</button>
+        <span class="date-label" id="date-label">-</span>
+        <button class="nav-btn" id="btn-next">&#8250;</button>
+        <button class="today-btn" id="btn-today">오늘</button>
+      </div>
+      <div class="hdr-btns">
+        <span class="global-toast" id="global-toast"></span>
+        <button class="hbtn save-all" id="btn-saveall">💾 전체저장</button>
+        <button class="hbtn export"   id="btn-export">⬇ PC저장</button>
+        <button class="hbtn import"   id="btn-import">⬆ 불러오기</button>
+      </div>
+    </div>
+    <div class="rp-body" id="rp-body"></div>
   </div>
-
-  <div class="controls">
-    <button id="reset-btn" class="btn" aria-label="처음으로"><i class="ti ti-refresh"></i></button>
-    <button id="play-btn" class="btn" aria-label="재생">
-      <i class="ti ti-player-play" id="play-icon"></i>
-    </button>
-  </div>
-
-  <div id="vol-row">
-    <label for="vol-slider">볼륨</label>
-    <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.4"/>
-    <i class="ti ti-volume" style="font-size:15px;color:#4a6a88" aria-hidden="true"></i>
-  </div>
-
-  <div class="progress-dots" id="dots"></div>
-  <div id="status-msg">재생 버튼을 눌러 명상을 시작하세요</div>
-  <div id="audio-note">♪ 앰비언트 신디사이저 사운드 재생 중 (Web Audio API)<br>실제 mp3 파일 경로는 코드 상단 audioSrc 변수를 수정하세요</div>
 </div>
 
 <script>
-/* ─────────────────────────────────────────────
-   오디오 파일 경로 설정
-   나중에 실제 파일로 교체 시 아래 경로만 수정하세요.
-   const voiceSrc = "audio/meditation.mp3";  // 명상 안내 목소리
-   const bgmSrc   = "audio/bgm.mp3";         // 배경 물소리/음악
-   현재는 Web Audio API 합성음으로 대체 작동합니다.
-───────────────────────────────────────────── */
-const voiceSrc = "";
-const bgmSrc   = "";
+(function () {
+  'use strict';
 
-const TOTAL = 300;
-const CIRCUMFERENCE = 2 * Math.PI * 95;
-
-const SCRIPT = [
-  {t:0,   text:"편안한 곳에 앉아볼까요?\n등을 꼿꼿하게 펴고,\n손은 무릎 위에 살포시 올려놓으세요."},
-  {t:10,  text:"이제 숨을 느껴보세요.\n코로 공기가 들어오는 느낌…\n그리고 코로 다시 나가는 느낌…"},
-  {t:28,  text:"들숨~ 날숨~\n천천히, 편안하게 숨을 쉬어봐요."},
-  {t:40,  text:"생각이 막 떠오르기 시작하네요?\n괜찮아요.\n'아, 생각이 올라왔구나' 하고\n그냥 지켜보기만 해요."},
-  {t:58,  text:"잡으려고 하지 말고,\n밀어내지도 말고…\n구름이 하늘을 지나가는 것처럼\n그냥 흘려보내는 거예요."},
-  {t:78,  text:"또 다른 생각이 올라오면\n'생각이구나~' 하고 이름만 붙여주고,\n다시 숨으로 돌아와요."},
-  {t:100, text:"이번엔 몸에서 느껴지는 감각을 살펴볼까요?\n어깨가 조금 무거운가요?\n가슴이 답답한가요?"},
-  {t:118, text:"그 느낌을 그냥\n'아, 지금 몸이 이렇게 느끼는구나'\n하고 따뜻하게 지켜봐요."},
-  {t:138, text:"감정이 올라올 수도 있어요.\n슬프거나, 불안하거나, 짜증이 날 수도 있지요.\n그럴 때도 마음으로 안아주듯 바라봐요."},
-  {t:162, text:"싫다고 밀어내지 않아도 돼요.\n그냥 지나갈 거예요."},
-  {t:178, text:"나는 생각이 아니에요.\n나는 감정이 아니에요.\n나는 그 모든 것을 조용히 지켜보고 있는\n따뜻하고 고요한 나예요."},
-  {t:200, text:"이제 다시 숨에 집중해볼게요.\n들숨으로 평온한 공기를 가득 받아들이고,\n날숨으로 불필요한 것들을 부드럽게 내보내요."},
-  {t:230, text:"들숨~ 날숨~\n천천히, 고요하게…"},
-  {t:255, text:"천천히 눈을 떠볼까요?\n지금 이 순간 내가 안전하고\n괜찮다는 걸 느껴봐요."},
-  {t:280, text:"수고했어요.\n마음이 조금 더 가벼워졌을 거예요.\n사랑해요. 고마워요."},
-];
-
-const PHASES = ["숨 고르기","관찰하기","내려놓기","느껴보기","고요하기"];
-
-let elapsed = 0, running = false, ticker = null, lastSub = -1;
-let audioCtx = null, masterGain = null, padNodes = [], volVal = 0.4;
-
-/* ── Web Audio 앰비언트 패드 합성 ── */
-function getCtx() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-    masterGain.connect(audioCtx.destination);
-  }
-  return audioCtx;
-}
-
-function buildPad() {
-  const ctx = getCtx();
-  const freqs = [110, 165, 220, 277.18, 330];
-  const now = ctx.currentTime;
-  padNodes.forEach(n => { try { n.stop(); } catch(e){} });
-  padNodes = [];
-  freqs.forEach((f, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-
-    osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-    osc.frequency.setValueAtTime(f, now);
-
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(0.08 + i * 0.03, now);
-    lfoGain.gain.setValueAtTime(f * 0.003, now);
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.12 / freqs.length, now + 3.5);
-
-    osc.connect(gain);
-    gain.connect(masterGain);
-    lfo.start(now);
-    osc.start(now);
-    padNodes.push(osc, lfo);
-  });
-
-  const rev = addReverb(ctx);
-  if (rev) masterGain.connect(rev);
-}
-
-function addReverb(ctx) {
-  try {
-    const len = ctx.sampleRate * 2.4;
-    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const d = buf.getChannelData(c);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+  /* ─────────────────────────────────────────
+     1. 데이터 정의
+  ───────────────────────────────────────── */
+  var ITEMS = [
+    {
+      id: 'a', num: '1단계',
+      label: '역할의 자리',
+      labelEn: 'Role Position — Emotional Separation',
+      virtues: ['객관화', '자기연민', '용기', '정직'],
+      desc: '감정을 억누르거나 자책하지 않고, 지금 내 안에서 폭발하는 감정들을 종이 위에 필터 없이 쏟아내어 \'나\'와 \'내 감정\'을 분리하고 객관화하는 단계입니다.',
+      subs: [
+        {
+          id: 'a1',
+          title: '감정 쏟아내기 (종이에 뿜어내기)',
+          desc: 'A4 용지나 메모장에 지금 내면에서 요동치는 감정을 필터 없이 그대로 적어 내려가세요. 검열하지 마세요.',
+          placeholder: '예) "진짜 미치겠다. 왜 나한테 난리야! 내가 뭘 그렇게 잘못했다고! 무섭고 억울해 죽겠다. 소장님도 내 편 안 들어주는 것 같고, 경찰까지 오니까 내가 죄인이 된 것 같아. 다 때려치우고 싶다! 숨이 안 쉬어져!!" → 지금 내 감정을 그대로 적어보세요.'
+        },
+        {
+          id: 'a2',
+          title: '감정의 분리 대화 (바라보는 나 ↔ 느끼는 감정)',
+          desc: '쓴 종이를 책상 위에 떼어놓고 거리를 둔 채 바라보세요. "바라보는 나"의 입장에서 종이 속 감정에게 따뜻하게 말을 건네세요.',
+          placeholder: '예) "수진아, 너 정말 무서웠구나. 온몸이 덜덜 떨릴 정도로 공포스럽고 억울했네. 그 무서운 상황을 혼자 감당하느라 심장이 이렇게 뛰는구나. 괜찮아, 적어도 지금은 그 사람 갔어." → 나의 감정에게 건네는 말을 적어보세요.'
+        }
+      ]
+    },
+    {
+      id: 'b', num: '2단계',
+      label: '중간 자리',
+      labelEn: 'Middle Position — Breath & Body Safety',
+      virtues: ['평온', '인내', '자기돌봄', '절제'],
+      desc: '극도의 긴장으로 비상벨이 켜진 신경계를 물리적 공간 이동과 호흡을 통해 직접 진정시킵니다. 머리가 아닌 몸이 "지금 안전하다"고 인지하게 하는 단계입니다.',
+      subs: [
+        {
+          id: 'b1',
+          title: '공간 분리 (역할의 공간 벗어나기)',
+          desc: '민원대·모니터·동료의 시선이 있는 역할의 공간을 잠시 벗어나세요. 화장실 칸, 문서고, 계단참 등 아무도 없는 중간 자리로 이동합니다.',
+          placeholder: '오늘 역할의 공간에서 벗어나 잠시 숨을 고쳤나요? 어디로 이동했고, 그 공간에서 몸이 어떻게 느껴졌나요?'
+        },
+        {
+          id: 'b2',
+          title: '판단 없는 몸을 위한 호흡 (들숨 4 · 날숨 6)',
+          desc: '벽에 등을 기대거나 바르게 서서 눈을 감고, 코로 4초 들이쉬고 입술을 둥글게 모아 6초 길게 내쉽니다. 5회 이상 반복하세요.',
+          placeholder: '예) "처음 1~2회는 명치끝이 꽉 막힌 듯 답답했는데, 날숨을 길게 뱉어내자 턱관절의 긴장이 풀리고 가슴 근육이 느슨해졌다. 쿵쾅거리던 심장이 서서히 차분해졌다." → 오늘 호흡 후 몸의 변화를 적어보세요.'
+        }
+      ]
+    },
+    {
+      id: 'c', num: '3단계',
+      label: '감정 카드 대화',
+      labelEn: 'Emotion Card Dialogue — Needs & Acceptance',
+      virtues: ['자기이해', '연민', '정직', '너그러움'],
+      desc: '내 감정을 정확하게 명명(Labeling)하고, 그 감정 뒤에 숨어있는 진짜 욕구(원함)를 다정하게 들여다봅니다. 평가 없는 수용의 단계입니다.',
+      subs: [
+        {
+          id: 'c1',
+          title: '감정 알아차림 (핵심 감정 명명하기)',
+          desc: '지금 내 안의 가장 핵심적인 감정을 정확한 단어로 불러주세요. 뭉뚱그려 "힘들어" 가 아니라 구체적으로 명명합니다.',
+          placeholder: '예) "수진아, 오늘 그 상황에서 너 정말 \'위협\'을 느꼈겠구나. 공직자라는 이유로 일방적으로 당해야 해서 \'비참\'하고 \'모욕\'스러웠겠다. 경찰까지 출동하니 \'불안\'하고 \'당혹\'스러웠겠어." → 지금 내 핵심 감정을 명명해보세요.'
+        },
+        {
+          id: 'c2',
+          title: '숨겨진 욕구(원함) 들여다보기',
+          desc: '그 감정 뒤에는 어떤 당연한 욕구가 있었나요? 충족되지 못한 욕구를 다정하게 인정해 주세요.',
+          placeholder: '예) "너는 안전한 환경에서 \'보호\'받으며 일하고 싶었던 거구나. 인격이 \'존중\'받기를 원했고, 기관이 나를 지켜줄 거라는 \'신뢰감\'이 간절했던 거야. 그 당연한 욕구들이 처참하게 깨져서 이렇게 아팠던 거네." → 내 숨겨진 욕구를 적어보세요.'
+        }
+      ]
+    },
+    {
+      id: 'd', num: '4단계',
+      label: '존재의 자리',
+      labelEn: 'Being Position — Safety & Love Mirror',
+      virtues: ['자기사랑', '확신', '평온', '존엄'],
+      desc: '공무원 타이틀이나 역할을 완전히 내려놓고, 이 땅에 태어난 소중하고 고유한 한 인간으로서 스스로에게 두 가지 거울을 비춥니다. 존재감 회복의 핵심 단계입니다.',
+      subs: [
+        {
+          id: 'd1',
+          title: '🪞 안전의 거울 (허용의 문장)',
+          desc: '어떤 결과가 나오더라도 나의 존재 자체는 안전하다는 것을 소리 내어 읊조려 보세요.',
+          placeholder: '예) "민원인에게 당당하게 한마디 받아쳤어도 나는 안전해." "경찰이 왔어도 괜찮아, 안전해." "지금 당장 휴직을 해도 너라는 존재는 안전해." "조직의 완벽한 공무원이 아니어도 나의 삶은 안전해." → 나만의 안전의 문장을 적어보세요.'
+        },
+        {
+          id: 'd2',
+          title: '🪞 사랑의 거울 (무조건적 수용의 문장)',
+          desc: '상처받고 흔들리는 지금 이 모습 그대로를 사랑하는 문장을 나에게 건네보세요.',
+          placeholder: '예) "악성 민원인 때문에 무섭고 눈물 흘리는 너를 사랑해." "매일 출근하기 싫어 괴로워하는 지금의 너를 사랑해." "보건소 공무원 타이틀이 없어도 너는 온전히 사랑받을 존재야." "세상 모두가 민원인 편을 들어도 나는 끝까지 네 편이야." → 나만의 사랑의 문장을 적어보세요.'
+        }
+      ]
+    },
+    {
+      id: 'e', num: '5단계',
+      label: '다시 역할의 자리로',
+      labelEn: 'Return — Restored Presence',
+      virtues: ['용기', '회복력', '자기신뢰', '지혜'],
+      desc: '존재의 자리에서 충전한 단단한 내면의 힘을 품고 다시 민원실 책상으로 돌아옵니다. 아까와 같은 자리지만 나는 더 이상 같은 내가 아닙니다.',
+      subs: [
+        {
+          id: 'e1',
+          title: '변화된 시선으로 사건 다시 바라보기',
+          desc: '아까 감정을 쏟아냈던 종이를 다시 바라보세요. 나를 파멸시킬 것 같았던 사건이 지금은 어떻게 보이나요?',
+          placeholder: '예) "아까는 나를 집어삼킬 것 같았던 악성 민원의 기억이, 이제는 \'지나간 하나의 사건\', \'내가 충분히 감당하고 흘려보낼 수 있는 작은 찌꺼기\'로 보이기 시작한다. 구부정했던 허리가 펴지고, 모니터를 바라보는 눈빛에 단단한 힘이 실린다." → 지금 그 사건이 어떻게 보이나요?'
+        },
+        {
+          id: 'e2',
+          title: '나만의 확언 (다이어리 첫 장·공무원증 뒷면)',
+          desc: '오늘의 여정을 통해 얻은 나만의 확언 한 문장을 만들어 기록해 두세요. 언제든 꺼내볼 수 있는 나의 닻이 됩니다.',
+          placeholder: '예) "공무원은 내 직업일 뿐, 내 존재가 아니다. 어떤 상황에서도 나는 나를 지키고 사랑한다. 괜찮아, 이 또한 내 영혼이 단단해지는 연습일 뿐이야." → 나만의 확언을 적어보세요.'
+        }
+      ]
     }
-    const conv = ctx.createConvolver();
-    conv.buffer = buf;
-    const rvg = ctx.createGain();
-    rvg.gain.setValueAtTime(0.35, ctx.currentTime);
-    conv.connect(rvg);
-    rvg.connect(ctx.destination);
-    masterGain.connect(conv);
-    return null;
-  } catch(e) { return null; }
-}
+  ];
 
-function startSound() {
-  const ctx = getCtx();
-  if (ctx.state === 'suspended') ctx.resume();
-  buildPad();
-  masterGain.gain.cancelScheduledValues(ctx.currentTime);
-  masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
-  masterGain.gain.linearRampToValueAtTime(volVal, ctx.currentTime + 2);
-}
+  /* ─────────────────────────────────────────
+     2. 상태
+  ───────────────────────────────────────── */
+  var store      = {};   // { "YYYY-MM-DD": { a1:"", a2:"", ... }, ... }
+  var checks     = {};   // { a: true, b: false, ... }
+  var curDate    = todayStr();
+  var openDetail = null;
 
-function stopSound(immediate) {
-  if (!audioCtx || !masterGain) return;
-  const now = audioCtx.currentTime;
-  masterGain.gain.cancelScheduledValues(now);
-  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-  const fade = immediate ? 0.1 : 2.5;
-  masterGain.gain.linearRampToValueAtTime(0, now + fade);
-  setTimeout(() => { padNodes.forEach(n => { try { n.stop(); } catch(e){} }); padNodes = []; }, (fade + 0.2) * 1000);
-}
-
-/* ── 볼륨 슬라이더 ── */
-document.getElementById('vol-slider').addEventListener('input', function() {
-  volVal = parseFloat(this.value);
-  if (masterGain && running) masterGain.gain.setValueAtTime(volVal, audioCtx.currentTime);
-});
-
-/* ── Wave canvas ── */
-const waveCanvas = document.getElementById('wave-canvas');
-const wCtx = waveCanvas.getContext('2d');
-let animId;
-
-function resizeWave() { waveCanvas.width = waveCanvas.offsetWidth; waveCanvas.height = waveCanvas.offsetHeight; }
-
-function drawWaves() {
-  if (!running) return;
-  resizeWave();
-  const W = waveCanvas.width, H = waveCanvas.height;
-  wCtx.clearRect(0, 0, W, H);
-  const t = Date.now() / 1000;
-  [
-    {amp:26,freq:0.016,spd:0.55,col:'rgba(74,184,232,0.38)',y:H*0.52},
-    {amp:16,freq:0.024,spd:0.85,col:'rgba(30,111,168,0.46)',y:H*0.64},
-    {amp:11,freq:0.033,spd:0.38,col:'rgba(126,200,240,0.28)',y:H*0.44},
-  ].forEach(w => {
-    wCtx.beginPath();
-    wCtx.moveTo(0, w.y);
-    for (let x = 0; x <= W; x += 4) wCtx.lineTo(x, w.y + Math.sin(x * w.freq + t * w.spd) * w.amp);
-    wCtx.lineTo(W, H); wCtx.lineTo(0, H); wCtx.closePath();
-    wCtx.fillStyle = w.col;
-    wCtx.fill();
-  });
-  animId = requestAnimationFrame(drawWaves);
-}
-
-/* ── Stars ── */
-(function() {
-  const svg = document.querySelector('.stars');
-  const ns = 'http://www.w3.org/2000/svg';
-  for (let i = 0; i < 65; i++) {
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('cx', Math.random() * 680);
-    c.setAttribute('cy', Math.random() * 300);
-    c.setAttribute('r', Math.random() * 1.4 + 0.3);
-    c.setAttribute('fill', '#c9e0f5');
-    c.setAttribute('opacity', (Math.random() * 0.45 + 0.08).toFixed(2));
-    svg.appendChild(c);
+  /* ─────────────────────────────────────────
+     3. 날짜 유틸
+  ───────────────────────────────────────── */
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
   }
-})();
 
-/* ── Dots ── */
-function buildDots() {
-  const el = document.getElementById('dots');
-  el.innerHTML = '';
-  SCRIPT.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'dot'; d.id = 'dot-' + i;
-    el.appendChild(d);
-  });
-}
-
-function updateDots(idx) {
-  SCRIPT.forEach((_, i) => {
-    const d = document.getElementById('dot-' + i);
-    if (!d) return;
-    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
-  });
-}
-
-/* ── Timer ── */
-function formatTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
-
-function updateRing() {
-  document.getElementById('ring-prog').style.strokeDashoffset = CIRCUMFERENCE * (elapsed / TOTAL);
-}
-
-function getCurrentScriptIdx(e) {
-  let idx = 0;
-  for (let i = 0; i < SCRIPT.length; i++) { if (e >= SCRIPT[i].t) idx = i; }
-  return idx;
-}
-
-function showSubtitle(idx) {
-  if (idx === lastSub) return;
-  const el = document.getElementById('subtitle');
-  el.classList.remove('visible');
-  setTimeout(() => { el.textContent = SCRIPT[idx].text; el.classList.add('visible'); }, 550);
-  lastSub = idx;
-  updateDots(idx);
-  document.getElementById('phase-label').textContent = PHASES[Math.min(Math.floor(idx / 3), PHASES.length - 1)];
-}
-
-function tick() {
-  if (elapsed >= TOTAL) {
-    clearInterval(ticker); running = false;
-    document.getElementById('play-icon').className = 'ti ti-player-play';
-    waveCanvas.classList.remove('active');
-    cancelAnimationFrame(animId);
-    stopSound(false);
-    document.getElementById('time-display').textContent = '0:00';
-    document.getElementById('status-msg').textContent = '명상을 마쳤어요. 그 고요함에 잠시 머물러봐요.';
-    return;
+  function fmtDate(s) {
+    if (!s) return '';
+    var parts = s.split('-');
+    var y = parts[0], m = parts[1], d = parts[2];
+    var names = ['일', '월', '화', '수', '목', '금', '토'];
+    var dow   = new Date(Number(y), Number(m) - 1, Number(d)).getDay();
+    return y + '년 ' + m + '월 ' + d + '일 (' + names[dow] + ')';
   }
-  elapsed++;
-  document.getElementById('time-display').textContent = formatTime(TOTAL - elapsed);
-  updateRing();
-  showSubtitle(getCurrentScriptIdx(elapsed));
-}
 
-/* ── Controls ── */
-function toggle() {
-  if (elapsed >= TOTAL) return;
-  running = !running;
-  const icon = document.getElementById('play-icon');
-  const msg = document.getElementById('status-msg');
-  if (running) {
-    msg.textContent = '명상 중...';
-    icon.className = 'ti ti-player-pause';
-    waveCanvas.classList.add('active');
-    startSound();
-    ticker = setInterval(tick, 1000);
-    drawWaves();
-    if (elapsed === 0) { showSubtitle(0); lastSub = 0; }
+  function shiftDate(s, n) {
+    var d = new Date(s);
+    d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
+  }
+
+  /* ─────────────────────────────────────────
+     4. 로컬스토리지
+  ───────────────────────────────────────── */
+  function loadLS() {
+    try {
+      var s = localStorage.getItem('sj_store');
+      var c = localStorage.getItem('sj_checks');
+      store  = s ? JSON.parse(s) : {};
+      checks = c ? JSON.parse(c) : {};
+    } catch (e) {
+      store  = {};
+      checks = {};
+    }
+  }
+
+  function saveLS() {
+    try {
+      localStorage.setItem('sj_store',  JSON.stringify(store));
+      localStorage.setItem('sj_checks', JSON.stringify(checks));
+    } catch (e) { /* 스토리지 쿼터 초과 등 무시 */ }
+  }
+
+  /* ─────────────────────────────────────────
+     5. textarea 자동 높이
+  ───────────────────────────────────────── */
+  function autoResize(ta) {
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(72, ta.scrollHeight) + 'px';
+  }
+
+  /* ─────────────────────────────────────────
+     6. 토스트
+  ───────────────────────────────────────── */
+  function showItemToast(id) {
+    var el = document.getElementById('ittoast-' + id);
+    if (!el) return;
+    el.style.display = 'inline';
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.display = 'none'; }, 2000);
+  }
+
+  function showGlobalToast(msg, cls) {
+    var el = document.getElementById('global-toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className   = 'global-toast ' + cls;
+    el.style.display = 'inline';
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.display = 'none'; }, 2500);
+  }
+
+  /* ─────────────────────────────────────────
+     7. 저장 함수들
+  ───────────────────────────────────────── */
+  function saveItem(id) {
+    if (!store[curDate]) store[curDate] = {};
+    var it = null;
+    for (var i = 0; i < ITEMS.length; i++) {
+      if (ITEMS[i].id === id) { it = ITEMS[i]; break; }
+    }
+    if (!it) return;
+    it.subs.forEach(function (s) {
+      var ta = document.getElementById('ta-' + s.id);
+      store[curDate][s.id] = ta ? ta.value : '';
+    });
+    saveLS();
+    renderDateList();
+    showItemToast(id);
+  }
+
+  function saveAll() {
+    if (!store[curDate]) store[curDate] = {};
+    ITEMS.forEach(function (it) {
+      it.subs.forEach(function (s) {
+        var ta = document.getElementById('ta-' + s.id);
+        store[curDate][s.id] = ta ? ta.value : '';
+      });
+    });
+    saveLS();
+    renderDateList();
+    showGlobalToast('✓ 전체 저장됨', 'green');
+  }
+
+  function exportFile() {
+    // 현재 화면 내용 먼저 반영
+    if (!store[curDate]) store[curDate] = {};
+    ITEMS.forEach(function (it) {
+      it.subs.forEach(function (s) {
+        var ta = document.getElementById('ta-' + s.id);
+        store[curDate][s.id] = ta ? ta.value : '';
+      });
+    });
+    saveLS();
+
+    var payload = { version: 2, exported: new Date().toISOString(), store: store, checks: checks };
+    var blob    = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    var url     = URL.createObjectURL(blob);
+    var a       = document.createElement('a');
+    var d       = new Date();
+    a.href     = url;
+    a.download = 'sujin_recovery_'
+      + d.getFullYear()
+      + String(d.getMonth() + 1).padStart(2, '0')
+      + String(d.getDate()).padStart(2, '0') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showGlobalToast('✓ ' + a.download + ' 저장됨', 'green');
+  }
+
+  function importFile(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        store      = parsed.store  || {};
+        checks     = parsed.checks || {};
+        openDetail = null;
+        saveLS();
+        // 가장 최근 기록 날짜로 이동
+        var dates = Object.keys(store).filter(function (d) {
+          var day = store[d];
+          return Object.keys(day).some(function (k) { return day[k] && day[k].trim(); });
+        }).sort(function (a, b) { return b.localeCompare(a); });
+        if (dates.length) curDate = dates[0];
+        renderAll();
+        showGlobalToast('✓ 불러오기 완료', 'green');
+      } catch (err) {
+        showGlobalToast('파일 형식 오류', 'red');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
+  }
+
+  /* ─────────────────────────────────────────
+     8. 오른쪽 패널 렌더
+  ───────────────────────────────────────── */
+  function renderRight() {
+    var labelEl = document.getElementById('date-label');
+    if (labelEl) labelEl.textContent = fmtDate(curDate);
+
+    var body = document.getElementById('rp-body');
+    if (!body) return;
+    body.innerHTML = '';
+
+    // 안내
+    var notice = document.createElement('div');
+    notice.className   = 'notice';
+    notice.innerHTML   = '각 전략의 소항목을 기록한 후 <b>💾 저장</b>을 누르거나, 상단 <b>전체저장</b>으로 한번에 저장하세요.';
+    body.appendChild(notice);
+
+    // 항목 블록
+    ITEMS.forEach(function (it) {
+      var dayData = store[curDate] || {};
+
+      // 미덕 태그
+      var vtHtml = it.virtues.map(function (v) {
+        return '<span class="vtag">' + v + '</span>';
+      }).join('');
+
+      // 소항목 textarea 쌍
+      var subHtml = it.subs.map(function (s) {
+        var saved = (dayData[s.id] !== undefined && dayData[s.id] !== null)
+          ? String(dayData[s.id]) : '';
+        // textarea 값은 textContent 방식으로 설정하기 위해 빈 마크업 생성 후 JS로 주입
+        return '<div class="sub-ta-wrap">'
+          + '<div class="sub-ta-title">▸ ' + s.title + '</div>'
+          + '<div class="sub-ta-desc">'  + s.desc  + '</div>'
+          + '<div class="ta-wrapper">'
+          + '<textarea class="entry-ta" id="ta-' + s.id + '"'
+          + ' rows="3" placeholder="' + s.placeholder.replace(/"/g, '&quot;') + '">'
+          + '</textarea>'
+          + '<button class="mic-btn" id="mic-' + s.id + '" data-ta="ta-' + s.id + '" title="마이크로 입력">🎙️</button>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+
+      var block = document.createElement('div');
+      block.className = 'entry-block';
+      block.innerHTML =
+        '<div class="entry-hdr">'
+          + '<span class="entry-num">' + it.num + '</span>'
+          + '<div class="entry-title">' + it.label + '</div>'
+          + '<div class="entry-title-en">' + it.labelEn + '</div>'
+          + '<div class="virtue-tags">' + vtHtml + '</div>'
+        + '</div>'
+        + '<div class="entry-body">'
+          + '<div class="entry-desc">' + it.desc + '</div>'
+          + '<div class="sub-tas">' + subHtml + '</div>'
+          + '<div class="save-row">'
+            + '<span class="item-toast" id="ittoast-' + it.id + '">✓ 저장됨</span>'
+            + '<button class="save-item-btn" data-id="' + it.id + '">💾 저장</button>'
+          + '</div>'
+        + '</div>';
+
+      body.appendChild(block);
+
+      // textarea 값 안전하게 주입 + 높이 초기화
+      it.subs.forEach(function (s) {
+        var dayData2 = store[curDate] || {};
+        var saved2   = (dayData2[s.id] !== undefined && dayData2[s.id] !== null)
+          ? String(dayData2[s.id]) : '';
+        var ta = document.getElementById('ta-' + s.id);
+        if (ta) {
+          ta.value = saved2;
+          autoResize(ta);
+          ta.addEventListener('input', function () { autoResize(ta); });
+        }
+      });
+    });
+
+    // 저장 버튼 이벤트 (이벤트 위임 방식)
+    body.addEventListener('click', function (e) {
+      var btn = e.target.closest('.save-item-btn');
+      if (btn) saveItem(btn.getAttribute('data-id'));
+    });
+
+    // 마이크 버튼 바인딩
+    setupMicButtons();
+  }
+
+  /* ─────────────────────────────────────────
+     9. 왼쪽 체크리스트 렌더
+  ───────────────────────────────────────── */
+  function renderChks() {
+    var c = document.getElementById('chk-items');
+    if (!c) return;
+    c.innerHTML = '';
+    var cnt = 0;
+
+    ITEMS.forEach(function (it) {
+      var on     = !!checks[it.id];
+      var isOpen = openDetail === it.id;
+      if (on) cnt++;
+
+      var vtHtml2 = it.virtues.map(function (v) {
+        return '<span class="vtag" style="margin-right:3px">' + v + '</span>';
+      }).join('');
+
+      var subsHtml = it.subs.map(function (s) {
+        return '<p>▸ ' + s.title + '</p>';
+      }).join('');
+
+      var card = document.createElement('div');
+      card.className = 'chk-card';
+      card.innerHTML =
+        '<div class="chk-row" data-toggle="' + it.id + '">'
+          + '<div class="chk-circle' + (on ? ' on' : '') + '" data-chk="' + it.id + '">'
+            + (on ? '✓' : '')
+          + '</div>'
+          + '<div style="flex:1;min-width:0">'
+            + '<div class="chk-num">' + it.num + '</div>'
+            + '<div class="chk-label' + (on ? ' done' : '') + '">' + it.label + '</div>'
+            + '<div class="chk-sub">' + it.labelEn + '</div>'
+          + '</div>'
+        + '</div>'
+        + '<div class="detail-box' + (isOpen ? ' open' : '') + '">'
+          + '<div class="tip-title">🌱 핵심 미덕</div>'
+          + '<p>' + vtHtml2 + '</p>'
+          + '<div class="tip-title" style="margin-top:6px">📌 실천 포인트</div>'
+          + subsHtml
+        + '</div>';
+
+      c.appendChild(card);
+    });
+
+    var ptxt = document.getElementById('ptxt');
+    var pbar = document.getElementById('pbar');
+    if (ptxt) ptxt.textContent = cnt + ' / ' + ITEMS.length + ' 완료';
+    if (pbar) pbar.style.width = Math.round(cnt / ITEMS.length * 100) + '%';
+  }
+
+  /* ─────────────────────────────────────────
+     10. 날짜 목록 렌더
+  ───────────────────────────────────────── */
+  function renderDateList() {
+    var list  = document.getElementById('date-list');
+    if (!list) return;
+    var dates = Object.keys(store).filter(function (d) {
+      var day = store[d];
+      return Object.keys(day).some(function (k) { return day[k] && day[k].trim(); });
+    }).sort(function (a, b) { return b.localeCompare(a); });
+
+    if (!dates.length) {
+      list.innerHTML = '<div class="empty-msg">아직 기록이 없어요</div>';
+      return;
+    }
+    list.innerHTML = '';
+    dates.forEach(function (d) {
+      var parts = d.split('-');
+      var item  = document.createElement('div');
+      item.className = 'date-item' + (d === curDate ? ' active' : '');
+      item.innerHTML = '<span>' + parts[1] + '월 ' + parts[2] + '일</span><span class="dot-saved"></span>';
+      item.setAttribute('data-date', d);
+      list.appendChild(item);
+    });
+  }
+
+  /* ─────────────────────────────────────────
+     11. 전체 렌더 헬퍼
+  ───────────────────────────────────────── */
+  function renderAll() {
+    renderChks();
+    renderRight();
+    renderDateList();
+  }
+
+  /* ─────────────────────────────────────────
+     12. 이벤트 바인딩 (DOMContentLoaded 후)
+  ───────────────────────────────────────── */
+  function bindEvents() {
+    // 날짜 이동
+    document.getElementById('btn-prev').addEventListener('click', function () {
+      curDate = shiftDate(curDate, -1);
+      renderRight(); renderDateList();
+    });
+    document.getElementById('btn-next').addEventListener('click', function () {
+      curDate = shiftDate(curDate, 1);
+      renderRight(); renderDateList();
+    });
+    document.getElementById('btn-today').addEventListener('click', function () {
+      curDate = todayStr();
+      renderRight(); renderDateList();
+    });
+
+    // 저장 버튼들
+    document.getElementById('btn-saveall').addEventListener('click', saveAll);
+    document.getElementById('btn-export').addEventListener('click', exportFile);
+    document.getElementById('btn-import').addEventListener('click', function () {
+      document.getElementById('file-input').click();
+    });
+    document.getElementById('file-input').addEventListener('change', importFile);
+
+    // 왼쪽 체크 & 펼침 — 이벤트 위임
+    document.getElementById('chk-items').addEventListener('click', function (e) {
+      var chkEl = e.target.closest('[data-chk]');
+      if (chkEl) {
+        e.stopPropagation();
+        var id = chkEl.getAttribute('data-chk');
+        checks[id] = !checks[id];
+        saveLS();
+        renderChks();
+        return;
+      }
+      var rowEl = e.target.closest('[data-toggle]');
+      if (rowEl) {
+        var tid = rowEl.getAttribute('data-toggle');
+        openDetail = (openDetail === tid) ? null : tid;
+        renderChks();
+      }
+    });
+
+    // 날짜 목록 — 이벤트 위임
+    document.getElementById('date-list').addEventListener('click', function (e) {
+      var item = e.target.closest('[data-date]');
+      if (item) {
+        curDate = item.getAttribute('data-date');
+        renderRight();
+        renderDateList();
+      }
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     STT  —  2-레이어 전략
+     Layer 1: Web Speech API  (PC Chrome / Android Chrome https)
+     Layer 2: getUserMedia  선처리  →  SpeechRecognition
+              안드로이드 content:// 로컬 파일에서는
+              getUserMedia 로 권한 팝업을 강제로 띄운 뒤
+              스트림을 닫고 SpeechRecognition 을 시작한다.
+     Layer 3: 폴백 안내  —  그래도 안 되면 사용자에게 가이드 표시
+  ═══════════════════════════════════════════════════════════════ */
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  var activeMicId    = null;
+  var activeRec      = null;
+  var micPermGranted = false;
+
+  /* ── 권한 팝업 강제 호출 (안드로이드 핵심) ── */
+  function ensureMicPerm(onOk, onFail) {
+    if (micPermGranted) { onOk(); return; }
+
+    // getUserMedia 미지원(구형 브라우저)이면 바로 SR 시도
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      micPermGranted = true; onOk(); return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      .then(function (stream) {
+        stream.getTracks().forEach(function (t) { t.stop(); }); // 스트림 즉시 해제
+        micPermGranted = true;
+        onOk();
+      })
+      .catch(function (err) {
+        var denied = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
+                      || err.name === 'SecurityError');
+        if (denied) {
+          showGlobalToast(
+            '🎙️ 마이크 권한이 필요합니다.\n'
+            + '① 브라우저 주소창 옆 🔒 또는 ⋮ 메뉴\n'
+            + '② 사이트 설정 → 마이크 → 허용\n'
+            + '③ 페이지 새로고침 후 다시 시도해 주세요.', 'red');
+        } else {
+          showGlobalToast('마이크 오류: ' + err.name + ' — Chrome 브라우저를 사용해 주세요.', 'red');
+        }
+        onFail();
+      });
+  }
+
+  /* ── 마이크 버튼 바인딩 ── */
+  function setupMicButtons() {
+    document.querySelectorAll('.mic-btn').forEach(function (btn) {
+
+      /* SR 자체가 없는 브라우저(Firefox 등) */
+      if (!SR) {
+        btn.classList.add('no-support');
+        btn.title = '이 브라우저는 음성 인식 미지원\nChrome 을 사용해 주세요';
+        btn.addEventListener('click', function () {
+          showGlobalToast('음성 인식은 Chrome 브라우저에서만 지원됩니다.', 'red');
+        });
+        return;
+      }
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var taId = btn.getAttribute('data-ta');
+        var ta   = document.getElementById(taId);
+        if (!ta) return;
+
+        /* 이미 이 버튼이 녹음 중 → 중지 */
+        if (activeMicId === btn.id) { stopRec(); return; }
+        /* 다른 버튼 녹음 중 → 먼저 중지 */
+        if (activeMicId) stopRec();
+
+        /* ★ 안드로이드 핵심: 권한 확보 후 STT 시작 */
+        ensureMicPerm(
+          function () { startRec(btn, ta); },
+          function () { /* 권한 거부 — toast 이미 표시됨 */ }
+        );
+      });
+    });
+  }
+
+  /* ── STT 시작 ── */
+  function startRec(btn, ta) {
+    var rec = new SR();
+    rec.lang           = 'ko-KR';
+    rec.interimResults = true;   // 말하는 중간 미리보기
+    rec.continuous     = true;   // 자동 끊김 방지 (안드로이드에서 onend 후 재시작으로 보완)
+    rec.maxAlternatives = 1;
+
+    var shouldRestart = true;    // 자동 재시작 플래그 (안드로이드 침묵 끊김 대응)
+    var interimEl     = null;    // 중간 결과 미리보기 span
+
+    /* 중간 결과 미리보기 span 생성/제거 */
+    function getOrCreateInterim() {
+      if (!interimEl) {
+        interimEl = document.createElement('span');
+        interimEl.style.cssText = 'color:#AAA;font-style:italic;';
+        ta.parentNode.appendChild(interimEl);
+      }
+      return interimEl;
+    }
+    function clearInterim() {
+      if (interimEl && interimEl.parentNode) interimEl.parentNode.removeChild(interimEl);
+      interimEl = null;
+    }
+
+    rec.onstart = function () {
+      activeMicId = btn.id;
+      activeRec   = rec;
+      btn.classList.add('active');
+      btn.title = '🔴 녹음 중 — 탭하면 중지';
+      ta.classList.add('listening');
+      showGlobalToast('🎙️ 말씀하세요…', 'blue');
+    };
+
+    rec.onresult = function (e) {
+      var finalText   = '';
+      var interimText = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalText += e.results[i][0].transcript;
+        } else {
+          interimText += e.results[i][0].transcript;
+        }
+      }
+      /* 최종 인식 결과 → textarea 에 누적 */
+      if (finalText) {
+        var cur = ta.value;
+        ta.value = cur
+          + (cur && !/[\s\n]$/.test(cur) ? ' ' : '')
+          + finalText.trim();
+        autoResize(ta);
+        clearInterim();
+      }
+      /* 중간 결과 → 미리보기 */
+      if (interimText) {
+        getOrCreateInterim().textContent = '…' + interimText;
+      }
+    };
+
+    rec.onerror = function (e) {
+      clearInterim();
+      /* 'network' / 'aborted' / 'no-speech' 는 안드로이드에서 자주 발생 → 재시작으로 대응 */
+      if (e.error === 'network' || e.error === 'aborted' || e.error === 'no-speech') return;
+      /* 실제 오류면 중지 */
+      shouldRestart = false;
+      var msg = (e.error === 'not-allowed' || e.error === 'service-not-allowed')
+        ? '마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해 주세요.'
+        : '음성 인식 오류: ' + e.error;
+      showGlobalToast(msg, 'red');
+      stopRec();
+    };
+
+    rec.onend = function () {
+      clearInterim();
+      /* 사용자가 중지 버튼을 누른 게 아니면 자동 재시작 (안드로이드 침묵 끊김 대응) */
+      if (shouldRestart && activeMicId === btn.id) {
+        try { rec.start(); } catch (err) { stopRec(); }
+      } else {
+        stopRec();
+      }
+    };
+
+    try {
+      rec.start();
+      activeRec = rec;
+    } catch (err) {
+      showGlobalToast('음성 인식 시작 실패: ' + err.message + '\nChrome 앱에서 열어 주세요.', 'red');
+    }
+  }
+
+  /* ── STT 중지 ── */
+  function stopRec() {
+    var rec = activeRec;
+    var mid = activeMicId;
+    activeRec   = null;
+    activeMicId = null;
+
+    if (rec) {
+      rec.onend   = null;   // 재시작 루프 차단
+      rec.onerror = null;
+      try { rec.abort(); } catch (e) {}  // stop() 보다 abort() 가 즉각적
+    }
+    if (mid) {
+      var b = document.getElementById(mid);
+      if (b) {
+        b.classList.remove('active');
+        b.title = '마이크로 입력';
+        var t = document.getElementById(b.getAttribute('data-ta'));
+        if (t) { t.classList.remove('listening'); autoResize(t); }
+      }
+    }
+  }
+
+  /* ─────────────────────────────────────────
+     13. 진입점 — DOMContentLoaded 보장
+  ───────────────────────────────────────── */
+  function init() {
+    loadLS();
+    curDate = todayStr();   // 항상 오늘로 시작
+    bindEvents();
+    renderAll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    msg.textContent = '일시 정지됨';
-    icon.className = 'ti ti-player-play';
-    waveCanvas.classList.remove('active');
-    stopSound(true);
-    clearInterval(ticker);
-    cancelAnimationFrame(animId);
+    init();   // 이미 파싱 완료된 경우 즉시 실행
   }
-}
 
-function reset() {
-  clearInterval(ticker); cancelAnimationFrame(animId);
-  running = false; elapsed = 0; lastSub = -1;
-  stopSound(true);
-  document.getElementById('play-icon').className = 'ti ti-player-play';
-  waveCanvas.classList.remove('active');
-  document.getElementById('time-display').textContent = '5:00';
-  document.getElementById('phase-label').textContent = '관찰 명상';
-  const sub = document.getElementById('subtitle');
-  sub.classList.remove('visible'); sub.textContent = '';
-  document.getElementById('ring-prog').style.strokeDashoffset = 0;
-  document.getElementById('status-msg').textContent = '재생 버튼을 눌러 명상을 시작하세요';
-  updateDots(-1);
-  wCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-}
-
-document.getElementById('play-btn').addEventListener('click', toggle);
-document.getElementById('reset-btn').addEventListener('click', reset);
-buildDots();
-resizeWave();
+}());
 </script>
+</body>
+</html>
